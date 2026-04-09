@@ -8,7 +8,7 @@ const connection = mysql.createConnection({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD, 
-  database: process.env.DB_NAME, 
+  // database: process.env.DB_NAME, <-- REMOVED! We can't specify this until we know it exists
   port: process.env.DB_PORT || 3307,           
   multipleStatements: true 
 });
@@ -24,16 +24,32 @@ connection.connect((err) => {
     process.exit(1);
   }
 
-  console.log('Connected successfully! Executing queries...');
+  if (!process.env.DB_NAME) {
+    console.error('CRITICAL ERROR: process.env.DB_NAME is undefined! Did you forget to create your .env file on the cloud server?');
+    process.exit(1);
+  }
 
-  connection.query(sqlFileContent, (err, results) => {
-    if (err) {
-      console.error('Error executing SQL file:', err.message);
-    } else {
-      console.log('✅ Database seeded and tables created successfully!');
-    }
-    
-    // Close connection so the script exits cleanly
-    connection.end();
+  console.log(`Connected successfully! Ensuring database \`${process.env.DB_NAME}\` exists...`);
+  
+  // Step 1: Force database creation and selection FIRST
+  connection.query(`CREATE DATABASE IF NOT EXISTS \`${process.env.DB_NAME}\`; USE \`${process.env.DB_NAME}\`;`, (err) => {
+      if (err) {
+          console.error('FAILED to create or select database on AWS. Error:', err.message);
+          console.error('Does your RDS user have permission to run CREATE DATABASE?');
+          connection.end();
+          return;
+      }
+
+      console.log(`Selected database \`${process.env.DB_NAME}\`. Now injecting tables...`);
+
+      // Step 2: Inject the actual tables
+      connection.query(sqlFileContent, (err, results) => {
+        if (err) {
+          console.error('Error executing Table SQL script:', err.message);
+        } else {
+          console.log('✅ Database seeded and tables created successfully!');
+        }
+        connection.end();
+      });
   });
 });
