@@ -6,11 +6,11 @@ const mysql = require('mysql2');
 
 // Configure MySQL Connection using a connection pool for stability!
 const db = mysql.createPool({
-  host: 'localhost',
-  user: 'root',      
+  host: process.env.DB_HOST || 'localhost', // Usually an intricate RDS endpoint like database-1.cluster-xxx.eu-west-1.rds.amazonaws.com
+  user: process.env.DB_USER || 'root',      // Usually 'admin' or 'master' in RDS
   password: process.env.DB_PASSWORD, 
   database: process.env.DB_NAME,
-  port: 3307,
+  port: process.env.DB_PORT || 3307,        // RDS default is usually 3306
   waitForConnections: true,
   connectionLimit: 10
 });

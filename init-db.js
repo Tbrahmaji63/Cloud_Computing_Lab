@@ -5,11 +5,11 @@ const path = require('path');
 
 // Ensure you have multipleStatements: true to run a full block of SQL
 const connection = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD, 
-  database: process.env.DB_NAME, // Point exactly to your custom environment database
-  port: 3307,           
+  database: process.env.DB_NAME, 
+  port: process.env.DB_PORT || 3307,           
   multipleStatements: true 
 });
 
