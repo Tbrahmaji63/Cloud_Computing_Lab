@@ -1,3 +1,41 @@
+// Google SSO Callback
+window.handleCredentialResponse = async (response) => {
+    const errorBox = document.getElementById('login-error');
+    if (!errorBox) return; // If not on login page
+    
+    errorBox.style.display = 'none';
+    
+    try {
+        const res = await fetch('/api/auth/google', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ credential: response.credential })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            // Show brief success style
+            errorBox.style.background = 'rgba(16, 185, 129, 0.1)';
+            errorBox.style.color = '#10b981';
+            errorBox.textContent = 'Google login successful! Redirecting...';
+            errorBox.style.display = 'block';
+            
+            setTimeout(() => {
+                window.location.href = '/page';
+            }, 500);
+        } else {
+            errorBox.style.background = 'rgba(255, 75, 75, 0.1)';
+            errorBox.style.color = '#ff4b4b';
+            errorBox.textContent = data.message;
+            errorBox.style.display = 'block';
+        }
+    } catch (err) {
+        errorBox.textContent = 'Network or server error during Google login.';
+        errorBox.style.display = 'block';
+    }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     // Basic micro-animations for elements inside the glass panel
     const cards = document.querySelectorAll('.feature-card');

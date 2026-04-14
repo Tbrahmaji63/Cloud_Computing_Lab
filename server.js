@@ -3,6 +3,9 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2');
+const { OAuth2Client } = require('google-auth-library');
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID');
 
 // Configure MySQL Connection using a connection pool for stability!
 const db = mysql.createPool({
@@ -73,6 +76,32 @@ const server = http.createServer((req, res) => {
         } catch(e) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: false, message: 'Bad request payload' }));
+        }
+    });
+    return;
+  }
+  
+  // --- GOOGLE SSO API ROUTE ---
+  if (req.method === 'POST' && req.url === '/api/auth/google') {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    
+    req.on('end', async () => {
+        try {
+            const { credential } = JSON.parse(body);
+            const ticket = await googleClient.verifyIdToken({
+                idToken: credential,
+                audience: process.env.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID',
+            });
+            const payload = ticket.getPayload();
+            // Typically you would look up or insert the user based on payload['sub'] or payload['email'] here.
+            
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true, message: 'Google login successful!', user: payload }));
+        } catch(e) {
+            console.error('Google Auth Error:', e.message);
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, message: 'Invalid Google token' }));
         }
     });
     return;
