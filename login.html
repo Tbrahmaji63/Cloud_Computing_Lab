@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <title>Login - Experience Next Gen</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
@@ -45,10 +46,12 @@
                 </div>
 
                 <!-- Google SSO -->
-                <script src="https://accounts.google.com/gsi/client" async></script>
+                <script src="https://accounts.google.com/gsi/client" async defer></script>
                 <div id="g_id_onload"
                     data-client_id="937146644024-obfn33bhij4rohijumliaq1e89aki5ia.apps.googleusercontent.com"
-                    data-callback="handleCredentialResponse" data-auto_prompt="false">
+                    data-callback="handleCredentialResponse" 
+                    data-auto_prompt="false"
+                    data-itp_support="true">
                 </div>
                 <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline"
                     data-text="sign_in_with" data-shape="rectangular" data-logo_alignment="left"
