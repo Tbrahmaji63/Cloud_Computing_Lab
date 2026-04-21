@@ -89,15 +89,51 @@ const server = http.createServer((req, res) => {
     req.on('end', async () => {
         try {
             const { credential } = JSON.parse(body);
+            console.log("TOKEN RECEIVED:", credential);
+            console.log("EXPECTED CLIENT ID:", process.env.GOOGLE_CLIENT_ID);
+            
             const ticket = await googleClient.verifyIdToken({
                 idToken: credential,
-                audience: process.env.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID',
+                audience: process.env.GOOGLE_CLIENT_ID,
             });
             const payload = ticket.getPayload();
-            // Typically you would look up or insert the user based on payload['sub'] or payload['email'] here.
-            
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ success: true, message: 'Google login successful!', user: payload }));
+            const { sub: google_id, email, name: username } = payload;
+
+            // Check if user exists by google_id or email
+            db.query(
+                'SELECT * FROM users WHERE google_id = ? OR email = ?',
+                [google_id, email],
+                (err, results) => {
+                    if (err) {
+                        console.error('Database Error during Google login:', err.message);
+                        res.writeHead(500, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: false, message: 'Database error' }));
+                        return;
+                    }
+
+                    if (results.length > 0) {
+                        // User exists, login successful
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: true, message: 'Google login successful!', user: results[0] }));
+                    } else {
+                        // Create new user for Google SSO
+                        db.query(
+                            'INSERT INTO users (username, email, google_id) VALUES (?, ?, ?)',
+                            [username, email, google_id],
+                            (err, insertResults) => {
+                                if (err) {
+                                    console.error('Database Error during Google user creation:', err.message);
+                                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                                    res.end(JSON.stringify({ success: false, message: 'Failed to create user' }));
+                                    return;
+                                }
+                                res.writeHead(200, { 'Content-Type': 'application/json' });
+                                res.end(JSON.stringify({ success: true, message: 'Google account linked and logged in!', user: { username, email } }));
+                            }
+                        );
+                    }
+                }
+            );
         } catch(e) {
             console.error('Google Auth Error:', e.message);
             res.writeHead(401, { 'Content-Type': 'application/json' });
